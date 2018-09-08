@@ -4,12 +4,12 @@ import android.animation.AnimatorListenerAdapter;
 import android.app.Activity;
 import android.content.Context;
 import android.content.res.Resources;
-import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.Matrix;
 import android.os.Build;
 import android.os.Environment;
 import android.os.Vibrator;
+import android.support.v4.content.CursorLoader;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.RecyclerView;
 import android.util.DisplayMetrics;
@@ -125,9 +125,9 @@ public class Utility {
         return topChild == null;
     }
 
-    public static Cursor getCursor(Context context) {
-        return context.getContentResolver().query(Constants.URI, Constants.PROJECTION,
-                null, null, Constants.ORDERBY);
+    public static CursorLoader getCursor(Context context) {
+        return new CursorLoader(context, Constants.URI, Constants.PROJECTION,
+                Constants.SELECTION, null, Constants.ORDERBY);
     }
 
     public static boolean isViewVisible(View view) {
@@ -195,7 +195,7 @@ public class Utility {
         ((Vibrator) c.getSystemService(Context.VIBRATOR_SERVICE)).vibrate(l);
     }
 
-    public static File writeImage(Bitmap bitmap) {
+    public static File writeImage(byte[] jpeg) {
         File dir = new File(Environment.getExternalStorageDirectory(), "/DCIM/Camera");
         if (!dir.exists())
             dir.mkdir();
@@ -207,8 +207,8 @@ public class Utility {
         try {
             FileOutputStream fos = new FileOutputStream(photo.getPath());
 
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 40, fos);
-            // fos.write(jpeg);
+            //  bitmap.compress(Bitmap.CompressFormat.JPEG, 100, fos);
+            fos.write(jpeg);
             fos.close();
         } catch (Exception e) {
             Log.e("PictureDemo", "Exception in photoCallback", e);

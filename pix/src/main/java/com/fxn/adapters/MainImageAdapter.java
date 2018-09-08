@@ -1,6 +1,7 @@
 package com.fxn.adapters;
 
 import android.content.Context;
+import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
@@ -17,7 +18,7 @@ import com.bumptech.glide.load.resource.bitmap.FitCenter;
 import com.bumptech.glide.request.RequestOptions;
 import com.fxn.interfaces.OnSelectionListener;
 import com.fxn.interfaces.SectionIndexer;
-import com.fxn.modals.Img;
+import com.fxn.modals.MediaData;
 import com.fxn.pix.R;
 import com.fxn.utility.HeaderItemDecoration;
 import com.fxn.utility.Utility;
@@ -33,9 +34,9 @@ public class MainImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
     public static final int HEADER = 1;
     public static final int ITEM = 2;
     public static final int SPAN_COUNT = 3;
-    private static final int MARGIN = 2;
+    private static final int MARGIN = 4;
 
-    private ArrayList<Img> list;
+    private ArrayList<MediaData> list;
     private OnSelectionListener onSelectionListener;
     private FrameLayout.LayoutParams layoutParams;
     private RequestManager glide;
@@ -44,17 +45,17 @@ public class MainImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
     public MainImageAdapter(Context context) {
         this.list = new ArrayList<>();
         int size = Utility.WIDTH / SPAN_COUNT;
-        layoutParams = new FrameLayout.LayoutParams(size, size);
-        layoutParams.setMargins(MARGIN, MARGIN - 1, MARGIN, MARGIN - 1);
+        layoutParams = new FrameLayout.LayoutParams(size, size - 2);
+        layoutParams.setMargins(MARGIN, MARGIN - 2, MARGIN, MARGIN - 2);
         options = new RequestOptions().override(360).transform(new CenterCrop()).transform(new FitCenter());
         glide = Glide.with(context);
     }
 
-    public ArrayList<Img> getItemList() {
+    public ArrayList<MediaData> getItemList() {
         return list;
     }
 
-    public MainImageAdapter addImage(Img image) {
+    public MainImageAdapter addImage(MediaData image) {
         list.add(image);
         notifyDataSetChanged();
         return this;
@@ -64,14 +65,14 @@ public class MainImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
         this.onSelectionListener = onSelectionListener;
     }
 
-    public void addImageList(ArrayList<Img> images) {
+    public void addImageList(ArrayList<MediaData> images) {
         list.addAll(images);
         notifyDataSetChanged();
     }
 
     @Override
     public int getItemViewType(int position) {
-        Img i = list.get(position);
+        MediaData i = list.get(position);
         return (i.getContentUrl().equalsIgnoreCase("")) ?
                 HEADER : ITEM;
     }
@@ -105,10 +106,14 @@ public class MainImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
 
     @Override
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
-        Img image = list.get(position);
+        MediaData image = list.get(position);
         if (holder instanceof Holder) {
             Holder imageHolder = (Holder) holder;
-            glide.load(image.getContentUrl()).apply(options).into(imageHolder.preview);
+            if (image.getType() == MediaStore.Files.FileColumns.MEDIA_TYPE_IMAGE) {
+                glide.load(image.getContentUrl()).apply(options).into(imageHolder.preview);
+            } else {
+                glide.load(image.getUrl()).apply(options).into(imageHolder.preview);
+            }
             imageHolder.selection.setVisibility(image.getSelected() ? View.VISIBLE : View.GONE);
         } else if (holder instanceof HeaderHolder) {
             HeaderHolder headerHolder = (HeaderHolder) holder;
@@ -142,7 +147,7 @@ public class MainImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
 
     @Override
     public void bindHeaderData(View header, int headerPosition) {
-        Img image = list.get(headerPosition);
+        MediaData image = list.get(headerPosition);
         ((TextView) header.findViewById(R.id.header)).setText(image.getHeaderDate());
     }
 

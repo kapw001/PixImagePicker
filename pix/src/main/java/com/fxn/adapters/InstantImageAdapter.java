@@ -1,6 +1,7 @@
 package com.fxn.adapters;
 
 import android.content.Context;
+import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
@@ -15,7 +16,7 @@ import com.bumptech.glide.load.resource.bitmap.CenterCrop;
 import com.bumptech.glide.load.resource.bitmap.FitCenter;
 import com.bumptech.glide.request.RequestOptions;
 import com.fxn.interfaces.OnSelectionListener;
-import com.fxn.modals.Img;
+import com.fxn.modals.MediaData;
 import com.fxn.pix.R;
 import com.fxn.utility.Utility;
 
@@ -26,7 +27,7 @@ import java.util.ArrayList;
  */
 
 public class InstantImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
-    private ArrayList<Img> list;
+    private ArrayList<MediaData> list;
     private OnSelectionListener onSelectionListener;
     private RequestManager glide;
     private RequestOptions options;
@@ -46,17 +47,17 @@ public class InstantImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
         this.onSelectionListener = onSelectionListener;
     }
 
-    public InstantImageAdapter addImage(Img image) {
+    public InstantImageAdapter addImage(MediaData image) {
         list.add(image);
         notifyDataSetChanged();
         return this;
     }
 
-    public ArrayList<Img> getItemList() {
+    public ArrayList<MediaData> getItemList() {
         return list;
     }
 
-    public void addImageList(ArrayList<Img> images) {
+    public void addImageList(ArrayList<MediaData> images) {
         list.addAll(images);
         notifyDataSetChanged();
     }
@@ -88,13 +89,13 @@ public class InstantImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
 
     @Override
     public int getItemViewType(int position) {
-        Img image = list.get(position);
+        MediaData image = list.get(position);
         return (image.getContentUrl().isEmpty()) ? MainImageAdapter.HEADER : MainImageAdapter.ITEM;
     }
 
     @Override
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
-        Img image = list.get(position);
+        MediaData image = list.get(position);
         if (holder instanceof Holder) {
             Holder imageHolder = (Holder) holder;
             FrameLayout.LayoutParams layoutParams = new FrameLayout.LayoutParams((int) size, (int) size);
@@ -103,9 +104,11 @@ public class InstantImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
 
             imageHolder.selection.setPadding(padding, padding, padding, padding);
             imageHolder.preview.setLayoutParams(layoutParams);
-
-            glide.load(image.getContentUrl()).apply(options).into(imageHolder.preview);
-
+            if (image.getType() == MediaStore.Files.FileColumns.MEDIA_TYPE_IMAGE) {
+                glide.load(image.getContentUrl()).apply(options).into(imageHolder.preview);
+            } else {
+                glide.load(image.getUrl()).apply(options).into(imageHolder.preview);
+            }
             imageHolder.selection.setVisibility(image.getSelected() ? View.VISIBLE : View.GONE);
         } else {
             HolderNone noneHolder = (HolderNone) holder;

@@ -6,20 +6,30 @@ import java.io.Serializable;
  * Created by akshay on 17/03/18.
  */
 
-public class Img implements Serializable {
+public class MediaData implements Serializable {
     private String headerDate;
     private String contentUrl;
     private String url;
     private Boolean isSelected;
     private String scrollerDate;
     private int position;
+    private int type;
 
-    public Img(String headerDate, String contentUrl, String url, String scrollerDate) {
+    public MediaData(String headerDate, String contentUrl, String url, String scrollerDate, int type) {
         this.headerDate = headerDate;
         this.contentUrl = contentUrl;
         this.url = url;
         this.isSelected = false;
         this.scrollerDate = scrollerDate;
+        this.type = type;
+    }
+
+    public int getType() {
+        return type;
+    }
+
+    public void setType(int type) {
+        this.type = type;
     }
 
     public int getPosition() {
