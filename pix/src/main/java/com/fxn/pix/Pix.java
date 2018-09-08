@@ -39,13 +39,17 @@ import com.fxn.adapters.InstantImageAdapter;
 import com.fxn.adapters.MainImageAdapter;
 import com.fxn.interfaces.OnSelectionListener;
 import com.fxn.interfaces.WorkFinish;
-import com.fxn.modals.Img;
+import com.fxn.modals.MediaData;
 import com.fxn.utility.Constants;
 import com.fxn.utility.HeaderItemDecoration;
 import com.fxn.utility.ImageFetcher;
 import com.fxn.utility.PermUtil;
 import com.fxn.utility.Utility;
 import com.fxn.utility.ui.FastScrollStateChangeListener;
+import com.wonderkiln.camerakit.CameraKit;
+import com.wonderkiln.camerakit.CameraKitEventCallback;
+import com.wonderkiln.camerakit.CameraKitImage;
+import com.wonderkiln.camerakit.CameraView;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -53,17 +57,6 @@ import java.util.Calendar;
 import java.util.HashSet;
 import java.util.Set;
 
-import io.fotoapparat.Fotoapparat;
-import io.fotoapparat.configuration.CameraConfiguration;
-import io.fotoapparat.parameter.ScaleType;
-import io.fotoapparat.result.BitmapPhoto;
-import io.fotoapparat.selector.FlashSelectorsKt;
-import io.fotoapparat.selector.FocusModeSelectorsKt;
-import io.fotoapparat.selector.LensPositionSelectorsKt;
-import io.fotoapparat.selector.SelectorsKt;
-import io.fotoapparat.view.CameraView;
-import kotlin.Unit;
-import kotlin.jvm.functions.Function1;
 
 public class Pix extends AppCompatActivity implements View.OnTouchListener {
 
@@ -75,8 +68,8 @@ public class Pix extends AppCompatActivity implements View.OnTouchListener {
     public static float TOPBAR_HEIGHT;
     private int BottomBarHeight = 0;
     private int colorPrimaryDark;
-    private Fotoapparat fotoapparat;
-    private float zoom = 0.0f;
+    private CameraView cameraView;
+    //private float zoom = 0.0f;
     private float dist = 0.0f;
     private Handler handler = new Handler();
     private FastScrollStateChangeListener mFastScrollStateChangeListener;
@@ -88,7 +81,7 @@ public class Pix extends AppCompatActivity implements View.OnTouchListener {
     private ImageView mHandleView, selection_back, selection_check;
     private ViewPropertyAnimator mScrollbarAnimator;
     private ViewPropertyAnimator mBubbleAnimator;
-    private Set<Img> selectionList = new HashSet<>();
+    private Set<MediaData> selectionList = new HashSet<>();
     private Runnable mScrollbarHider = new Runnable() {
         @Override
         public void run() {
@@ -136,11 +129,11 @@ public class Pix extends AppCompatActivity implements View.OnTouchListener {
     private TextView selection_count;
     private OnSelectionListener onSelectionListener = new OnSelectionListener() {
         @Override
-        public void onClick(Img img, View view, int position) {
+        public void onClick(MediaData data, View view, int position) {
             //Log.e("onClick", "onClick");
             if (LongSelection) {
-                if (selectionList.contains(img)) {
-                    selectionList.remove(img);
+                if (selectionList.contains(data)) {
+                    selectionList.remove(data);
                     initaliseadapter.select(false, position);
                     mainImageAdapter.select(false, position);
                 } else {
@@ -148,8 +141,8 @@ public class Pix extends AppCompatActivity implements View.OnTouchListener {
                         Toast.makeText(Pix.this, String.format(getResources().getString(R.string.selection_limiter_pix), selectionList.size()), Toast.LENGTH_SHORT).show();
                         return;
                     }
-                    img.setPosition(position);
-                    selectionList.add(img);
+                    data.setPosition(position);
+                    selectionList.add(data);
                     initaliseadapter.select(true, position);
                     mainImageAdapter.select(true, position);
                 }
@@ -199,8 +192,8 @@ public class Pix extends AppCompatActivity implements View.OnTouchListener {
                 selection_count.setText(getResources().getString(R.string.pix_selected) + " " + selectionList.size());
                 img_count.setText(String.valueOf(selectionList.size()));
             } else {
-                img.setPosition(position);
-                selectionList.add(img);
+                data.setPosition(position);
+                selectionList.add(data);
                 returnObjects();
                 DrawableCompat.setTint(selection_back.getDrawable(), colorPrimaryDark);
                 topbar.setBackgroundColor(Color.parseColor("#ffffff"));
@@ -208,7 +201,7 @@ public class Pix extends AppCompatActivity implements View.OnTouchListener {
         }
 
         @Override
-        public void onLongClick(Img img, View view, int position) {
+        public void onLongClick(MediaData img, View view, int position) {
             if (SelectionCount > 1) {
                 Utility.vibe(Pix.this, 50);
                 //Log.e("onLongClick", "onLongClick");
@@ -247,7 +240,7 @@ public class Pix extends AppCompatActivity implements View.OnTouchListener {
     private ImageView front;
     private boolean isback = true;
     private int flashDrawable;
-    private View.OnTouchListener onCameraTouchListner = new View.OnTouchListener() {
+   /* private View.OnTouchListener onCameraTouchListner = new View.OnTouchListener() {
         @Override
         public boolean onTouch(View v, MotionEvent event) {
             if (event.getPointerCount() > 1) {
@@ -269,7 +262,7 @@ public class Pix extends AppCompatActivity implements View.OnTouchListener {
                             zoom = zoom - 0.01f;
                         }
                         dist = newDist;
-                        fotoapparat.setZoom(zoom);
+                        cameraView.setZoom(zoom);
                         break;
                     default:
                         break;
@@ -277,7 +270,7 @@ public class Pix extends AppCompatActivity implements View.OnTouchListener {
             }
             return true;
         }
-    };
+    };*/
 
     public static void start(final Fragment context, final int requestCode, final int selectionCount) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -345,7 +338,7 @@ public class Pix extends AppCompatActivity implements View.OnTouchListener {
 
     public void returnObjects() {
         ArrayList<String> list = new ArrayList<>();
-        for (Img i : selectionList) {
+        for (MediaData i : selectionList) {
             list.add(i.getUrl());
             // Log.e("Pix images", "img " + i.getUrl());
         }
@@ -368,18 +361,18 @@ public class Pix extends AppCompatActivity implements View.OnTouchListener {
     protected void onRestart() {
         super.onRestart();
         initialize();
-        fotoapparat.start();
+        cameraView.start();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        fotoapparat.start();
+        cameraView.start();
     }
 
     @Override
     protected void onPause() {
-        fotoapparat.stop();
+        cameraView.stop();
         super.onPause();
     }
 
@@ -394,28 +387,12 @@ public class Pix extends AppCompatActivity implements View.OnTouchListener {
             e.printStackTrace();
         }
         colorPrimaryDark = ResourcesCompat.getColor(getResources(), R.color.colorPrimaryPix, getTheme());
-        CameraView mCamera = findViewById(R.id.camera_view);
-        fotoapparat = Fotoapparat.with(this).into(mCamera)
-                .previewScaleType(ScaleType.CenterCrop)  // we want the preview to fill the view
-                // .photoResolution(ResolutionSelectorsKt.lowestResolution())   // we want to have the biggest photo possible
-                .lensPosition(LensPositionSelectorsKt.back())      // we want back camera
-                .focusMode(SelectorsKt.firstAvailable(  // (optional) use the first focus mode which is supported by device
-                        FocusModeSelectorsKt.continuousFocusPicture(),
-                        FocusModeSelectorsKt.autoFocus(),    // in case if continuous focus is not available on device, auto focus will be used
-                        FocusModeSelectorsKt.fixed()             // if even auto focus is not available - fixed focus mode will be used
-                ))
-                //.flash(FlashSelectorsKt.autoRedEye())
-                /*.logger(LoggersKt.loggers(            // (optional) we want to log camera events in 2 places at once
-                        LoggersKt.logcat(),           // ... in logcat
-                        LoggersKt.fileLogger(this)    // ... and to file
-                ))*/
-                .build();
+        cameraView = findViewById(R.id.camera);
+        cameraView.setFocus(CameraKit.Constants.FOCUS_TAP_WITH_MARKER);
 
-        zoom = 0.0f;
-        mCamera.setOnTouchListener(onCameraTouchListner);
-        fotoapparat.start();
-        fotoapparat.updateConfiguration(CameraConfiguration.builder().flash(FlashSelectorsKt.autoRedEye()).build());
-
+        //zoom = 0.0f;
+        //cameraView.setOnTouchListener(onCameraTouchListner);
+        cameraView.setPinchToZoom(true);
         flash = findViewById(R.id.flash);
         front = findViewById(R.id.front);
         topbar = findViewById(R.id.topbar);
@@ -482,29 +459,18 @@ public class Pix extends AppCompatActivity implements View.OnTouchListener {
         findViewById(R.id.clickme).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-
-                fotoapparat.takePicture().toBitmap().transform(new Function1<BitmapPhoto, Bitmap>() {
+                cameraView.captureImage(new CameraKitEventCallback<CameraKitImage>() {
                     @Override
-                    public Bitmap invoke(BitmapPhoto bitmapPhoto) {
-                        Log.e("my pick transform", bitmapPhoto.toString());
-                        fotoapparat.stop();
-                        return Utility.rotate(bitmapPhoto.bitmap, -bitmapPhoto.rotationDegrees);
-                    }
-                }).whenAvailable(new Function1<Bitmap, Unit>() {
-                    @Override
-                    public Unit invoke(Bitmap bitmap) {
-                        if (bitmap != null) {
-                            Log.e("my pick", bitmap.toString());
-                            synchronized (bitmap) {
-                                File photo = Utility.writeImage(bitmap);
-                                Log.e("my pick saved", bitmap.toString() + "    ->  " + photo.length() / 1024);
-                                selectionList.clear();
-                                selectionList.add(new Img("", "", photo.getAbsolutePath(), ""));
-                                returnObjects();
+                    public void callback(CameraKitImage cameraKitImage) {
+                        Bitmap bitmap = cameraKitImage.getBitmap();
+                        synchronized (bitmap) {
+                            File photo = Utility.writeImage(cameraKitImage.getJpeg());
+                            Log.e("my pick saved", bitmap.toString() + "    ->  " + photo.length() / 1024);
+                            selectionList.clear();
+                            selectionList.add(new MediaData("", "", photo.getAbsolutePath(), "", 0));
+                            returnObjects();
 
-                            }
                         }
-                        return null;
                     }
                 });
             }
@@ -555,15 +521,15 @@ public class Pix extends AppCompatActivity implements View.OnTouchListener {
                         if (flashDrawable == R.drawable.ic_flash_auto_black_24dp) {
                             flashDrawable = R.drawable.ic_flash_off_black_24dp;
                             iv.setImageResource(flashDrawable);
-                            fotoapparat.updateConfiguration(CameraConfiguration.builder().flash(FlashSelectorsKt.off()).build());
+                            cameraView.setFlash(CameraKit.Constants.FLASH_OFF);
                         } else if (flashDrawable == R.drawable.ic_flash_off_black_24dp) {
                             flashDrawable = R.drawable.ic_flash_on_black_24dp;
                             iv.setImageResource(flashDrawable);
-                            fotoapparat.updateConfiguration(CameraConfiguration.builder().flash(FlashSelectorsKt.on()).build());
+                            cameraView.setFlash(CameraKit.Constants.FLASH_ON);
                         } else {
                             flashDrawable = R.drawable.ic_flash_auto_black_24dp;
                             iv.setImageResource(flashDrawable);
-                            fotoapparat.updateConfiguration(CameraConfiguration.builder().flash(FlashSelectorsKt.autoRedEye()).build());
+                            cameraView.setFlash(CameraKit.Constants.FLASH_AUTO);
                         }
                         // fotoapparat.focus();
                         iv.animate().translationY(0).setDuration(50).setListener(null).start();
@@ -575,7 +541,6 @@ public class Pix extends AppCompatActivity implements View.OnTouchListener {
         front.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                final CameraConfiguration cameraConfiguration = new CameraConfiguration();
                 final ObjectAnimator oa1 = ObjectAnimator.ofFloat(front, "scaleX", 1f, 0f).setDuration(150);
                 final ObjectAnimator oa2 = ObjectAnimator.ofFloat(front, "scaleX", 0f, 1f).setDuration(150);
                 oa1.addListener(new AnimatorListenerAdapter() {
@@ -589,10 +554,10 @@ public class Pix extends AppCompatActivity implements View.OnTouchListener {
                 oa1.start();
                 if (isback) {
                     isback = false;
-                    fotoapparat.switchTo(LensPositionSelectorsKt.front(), cameraConfiguration);
+                    cameraView.setFacing(CameraKit.Constants.FACING_FRONT);
                 } else {
                     isback = true;
-                    fotoapparat.switchTo(LensPositionSelectorsKt.back(), cameraConfiguration);
+                    cameraView.setFacing(CameraKit.Constants.FACING_BACK);
                 }
             }
         });
@@ -600,37 +565,39 @@ public class Pix extends AppCompatActivity implements View.OnTouchListener {
 
     private void updateImages() {
         mainImageAdapter.clearList();
-        Cursor cursor = Utility.getCursor(Pix.this);
-        ArrayList<Img> INSTANTLIST = new ArrayList<>();
+        Cursor cursor = Utility.getCursor(Pix.this).loadInBackground();
+        ArrayList<MediaData> INSTANTLIST = new ArrayList<>();
         String header = "";
         int limit = 100;
         if (cursor.getCount() < 100) {
             limit = cursor.getCount();
         }
-        int date = cursor.getColumnIndex(MediaStore.Images.Media.DATE_TAKEN);
-        int data = cursor.getColumnIndex(MediaStore.Images.Media.DATA);
-        int contentUrl = cursor.getColumnIndex(MediaStore.Images.Media._ID);
+        int date = cursor.getColumnIndex(MediaStore.Files.FileColumns.DATE_ADDED);
+        int data = cursor.getColumnIndex(MediaStore.Files.FileColumns.DATA);
+        int contentUrl = cursor.getColumnIndex(MediaStore.Files.FileColumns._ID);
+        int type = cursor.getColumnIndex(MediaStore.Files.FileColumns.MEDIA_TYPE);
+
         Calendar calendar;
         for (int i = 0; i < limit; i++) {
             cursor.moveToNext();
             Uri path = Uri.withAppendedPath(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, "" + cursor.getInt(contentUrl));
             calendar = Calendar.getInstance();
-            calendar.setTimeInMillis(cursor.getLong(date));
+            calendar.setTimeInMillis(cursor.getLong(date) * 1000L);
             String dateDifference = Utility.getDateDifference(Pix.this, calendar);
             if (!header.equalsIgnoreCase("" + dateDifference)) {
                 header = "" + dateDifference;
-                INSTANTLIST.add(new Img("" + dateDifference, "", "", ""));
+                INSTANTLIST.add(new MediaData("" + dateDifference, "", "", "", cursor.getInt(type)));
             }
-            INSTANTLIST.add(new Img("" + header, "" + path, cursor.getString(data), ""));
+            INSTANTLIST.add(new MediaData("" + header, "" + path, cursor.getString(data), "", cursor.getInt(type)));
         }
         cursor.close();
         new ImageFetcher(Pix.this) {
             @Override
-            protected void onPostExecute(ArrayList<Img> imgs) {
+            protected void onPostExecute(ArrayList<MediaData> imgs) {
                 super.onPostExecute(imgs);
                 mainImageAdapter.addImageList(imgs);
             }
-        }.execute(Utility.getCursor(Pix.this));
+        }.execute(Utility.getCursor(Pix.this).loadInBackground());
         initaliseadapter.addImageList(INSTANTLIST);
         mainImageAdapter.addImageList(INSTANTLIST);
         setBottomSheetBehavior();
@@ -641,14 +608,6 @@ public class Pix extends AppCompatActivity implements View.OnTouchListener {
         mBottomSheetBehavior = BottomSheetBehavior.from(bottomSheet);
         mBottomSheetBehavior.setPeekHeight((int) (Utility.convertDpToPixel(194, this)));
         mBottomSheetBehavior.setBottomSheetCallback(new BottomSheetBehavior.BottomSheetCallback() {
-            /**
-             * Called when the bottom sheet changes its state.
-             *
-             * @param bottomSheet The bottom sheet view.
-             * @param newState    The new state. This will be one of {@link #STATE_DRAGGING},
-             *                    {@link #STATE_SETTLING}, {@link #STATE_EXPANDED},
-             *                    {@link #STATE_COLLAPSED}, or {@link #STATE_HIDDEN}.
-             */
             @Override
             public void onStateChanged(@NonNull View bottomSheet, int newState) {
 
@@ -676,7 +635,7 @@ public class Pix extends AppCompatActivity implements View.OnTouchListener {
                     initaliseadapter.notifyDataSetChanged();
                     hideScrollbar();
                     img_count.setText(String.valueOf(selectionList.size()));
-                    fotoapparat.start();
+                    cameraView.start();
                 }
             }
         });
@@ -812,7 +771,7 @@ public class Pix extends AppCompatActivity implements View.OnTouchListener {
     @Override
     public void onBackPressed() {
         if (selectionList.size() > 0) {
-            for (Img img : selectionList) {
+            for (MediaData img : selectionList) {
                 mainImageAdapter.getItemList().get(img.getPosition()).setSelected(false);
                 mainImageAdapter.notifyItemChanged(img.getPosition());
                 initaliseadapter.getItemList().get(img.getPosition()).setSelected(false);
