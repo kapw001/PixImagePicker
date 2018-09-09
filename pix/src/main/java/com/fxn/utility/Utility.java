@@ -216,6 +216,26 @@ public class Utility {
         return photo;
     }
 
+    public static File writeVideo(File photo) {
+        File dir = new File(Environment.getExternalStorageDirectory(), "/DCIM/Camera");
+        if (!dir.exists())
+            dir.mkdir();
+        if (photo.exists()) {
+            photo.delete();
+        }
+
+        try {
+            FileOutputStream fos = new FileOutputStream(photo.getPath());
+
+            //  bitmap.compress(Bitmap.CompressFormat.JPEG, 100, fos);
+            //fos.write(photo.);
+            fos.close();
+        } catch (Exception e) {
+            Log.e("PictureDemo", "Exception in photoCallback", e);
+        }
+        return photo;
+    }
+
     public static Bitmap getScaledBitmap(int maxWidth, Bitmap rotatedBitmap) {
         try {
 

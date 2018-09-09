@@ -11,6 +11,7 @@ import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.provider.MediaStore;
 import android.support.annotation.NonNull;
@@ -28,6 +29,7 @@ import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewPropertyAnimator;
+import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.animation.Animation;
 import android.view.animation.ScaleAnimation;
 import android.widget.FrameLayout;
@@ -49,12 +51,16 @@ import com.fxn.utility.ui.FastScrollStateChangeListener;
 import com.wonderkiln.camerakit.CameraKit;
 import com.wonderkiln.camerakit.CameraKitEventCallback;
 import com.wonderkiln.camerakit.CameraKitImage;
+import com.wonderkiln.camerakit.CameraKitVideo;
 import com.wonderkiln.camerakit.CameraView;
 
 import java.io.File;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Set;
 
 
@@ -240,37 +246,7 @@ public class Pix extends AppCompatActivity implements View.OnTouchListener {
     private ImageView front;
     private boolean isback = true;
     private int flashDrawable;
-   /* private View.OnTouchListener onCameraTouchListner = new View.OnTouchListener() {
-        @Override
-        public boolean onTouch(View v, MotionEvent event) {
-            if (event.getPointerCount() > 1) {
-
-                switch (event.getAction() & MotionEvent.ACTION_MASK) {
-                    case MotionEvent.ACTION_POINTER_DOWN:
-                        dist = Utility.getFingerSpacing(event);
-                        break;
-                    case MotionEvent.ACTION_MOVE:
-                        float maxZoom = 1f;
-
-                        float newDist = Utility.getFingerSpacing(event);
-                        if (newDist > dist) {
-                            //zoom in
-                            if (zoom < maxZoom)
-                                zoom = zoom + 0.01f;
-                        } else if ((newDist < dist) && (zoom > 0)) {
-                            //zoom out
-                            zoom = zoom - 0.01f;
-                        }
-                        dist = newDist;
-                        cameraView.setZoom(zoom);
-                        break;
-                    default:
-                        break;
-                }
-            }
-            return true;
-        }
-    };*/
+    private ImageView clickme;
 
     public static void start(final Fragment context, final int requestCode, final int selectionCount) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -389,13 +365,11 @@ public class Pix extends AppCompatActivity implements View.OnTouchListener {
         colorPrimaryDark = ResourcesCompat.getColor(getResources(), R.color.colorPrimaryPix, getTheme());
         cameraView = findViewById(R.id.camera);
         cameraView.setFocus(CameraKit.Constants.FOCUS_TAP_WITH_MARKER);
-
-        //zoom = 0.0f;
-        //cameraView.setOnTouchListener(onCameraTouchListner);
         cameraView.setPinchToZoom(true);
         flash = findViewById(R.id.flash);
         front = findViewById(R.id.front);
         topbar = findViewById(R.id.topbar);
+        clickme = findViewById(R.id.clickme);
         selection_count = findViewById(R.id.selection_count);
         selection_back = findViewById(R.id.selection_back);
         selection_check = findViewById(R.id.selection_check);
@@ -456,23 +430,69 @@ public class Pix extends AppCompatActivity implements View.OnTouchListener {
     }
 
     private void onClickMethods() {
-        findViewById(R.id.clickme).setOnClickListener(new View.OnClickListener() {
+        clickme.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                switch (event.getAction()) {
+                    case MotionEvent.ACTION_DOWN: {
+                        Log.e("ACTION_DOWN", "ACTION_DOWN");
+                        clickme.animate().scaleX(1.3f).scaleY(1.3f).setDuration(100L).setInterpolator(new AccelerateDecelerateInterpolator()).start();
+
+                    }
+                    break;
+                    case MotionEvent.ACTION_UP: {
+                        Log.e("ACTION_UP", "ACTION_UP");
+                        cameraView.stopVideo();
+                        clickme.animate().scaleX(1f).scaleY(1f).setDuration(100L).setInterpolator(new AccelerateDecelerateInterpolator()).start();
+
+                    }
+                    break;
+                }
+                return false;
+            }
+        });
+        clickme.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 cameraView.captureImage(new CameraKitEventCallback<CameraKitImage>() {
                     @Override
                     public void callback(CameraKitImage cameraKitImage) {
                         Bitmap bitmap = cameraKitImage.getBitmap();
+
                         synchronized (bitmap) {
                             File photo = Utility.writeImage(cameraKitImage.getJpeg());
                             Log.e("my pick saved", bitmap.toString() + "    ->  " + photo.length() / 1024);
                             selectionList.clear();
                             selectionList.add(new MediaData("", "", photo.getAbsolutePath(), "", 0));
                             returnObjects();
-
                         }
                     }
                 });
+            }
+        });
+        clickme.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View v) {
+                Log.e("file stored", "file ");
+                File dir = new File(Environment.getExternalStorageDirectory(), "/DCIM/Video");
+                if (!dir.exists())
+                    dir.mkdir();
+                final File vid = new File(dir, "VID_" + new SimpleDateFormat("yyyyMMdd_HHmmSS", Locale.ENGLISH).format(new Date()) + ".mp4");
+                if (vid.exists()) {
+                    vid.delete();
+                }
+                cameraView.captureVideo(vid, new CameraKitEventCallback<CameraKitVideo>() {
+                    @Override
+                    public void callback(CameraKitVideo cameraKitVideo) {
+                        File f = cameraKitVideo.getVideoFile();
+                        selectionList.clear();
+                        selectionList.add(new MediaData("", "", vid.getAbsolutePath(), "", 0));
+                        returnObjects();
+                        Log.e("file stored", "file )---> " + f.getPath() + "    " + f.length());
+
+                    }
+                });
+                return true;
             }
         });
         findViewById(R.id.selection_ok).setOnClickListener(new View.OnClickListener() {
