@@ -1,18 +1,14 @@
 package com.fxn.utility;
 
 import android.Manifest;
-import android.app.Activity;
 import android.content.pm.PackageManager;
 import android.os.Build;
-
+import android.support.annotation.RequiresApi;
+import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentActivity;
 import com.fxn.interfaces.WorkFinish;
-
 import java.util.ArrayList;
 import java.util.List;
-
-import androidx.annotation.RequiresApi;
-import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentActivity;
 
 /**
  * Created by akshay on 11/14/16.
@@ -41,7 +37,8 @@ public abstract class PermUtil {
     }*/
 
     @RequiresApi(api = Build.VERSION_CODES.M)
-    private static boolean addPermission(List<String> permissionsList, String permission, Activity ac) {
+    private static boolean addPermission(List<String> permissionsList, String permission,
+        FragmentActivity ac) {
         if (ac.checkSelfPermission(permission) != PackageManager.PERMISSION_GRANTED) {
             permissionsList.add(permission);
             // Check for Rationale Option

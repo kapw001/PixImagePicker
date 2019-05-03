@@ -1,16 +1,14 @@
 package com.fxn.adapters;
 
 import android.content.Context;
+import android.support.annotation.NonNull;
+import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
-
-import androidx.annotation.NonNull;
-import androidx.recyclerview.widget.RecyclerView;
-
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.RequestManager;
 import com.bumptech.glide.load.resource.bitmap.CenterCrop;
@@ -22,7 +20,6 @@ import com.fxn.modals.Img;
 import com.fxn.pix.R;
 import com.fxn.utility.HeaderItemDecoration;
 import com.fxn.utility.Utility;
-
 import java.util.ArrayList;
 
 /**

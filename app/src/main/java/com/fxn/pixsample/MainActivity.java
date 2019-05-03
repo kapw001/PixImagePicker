@@ -3,21 +3,20 @@ package com.fxn.pixsample;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Point;
 import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.util.Log;
+import android.view.Display;
 import android.view.View;
 import android.widget.Toast;
-
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
-
 import com.fxn.adapters.MyAdapter;
 import com.fxn.pix.Options;
 import com.fxn.pix.Pix;
 import com.fxn.utility.ImageQuality;
 import com.fxn.utility.PermUtil;
-
 import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity {
@@ -25,28 +24,29 @@ public class MainActivity extends AppCompatActivity {
     MyAdapter myAdapter;
     Options options;
     ArrayList<String> returnValue = new ArrayList<>();
-    ArrayList<String> returnValue1 = new ArrayList<>();
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        Display display = getWindowManager().getDefaultDisplay();
+        Point size = new Point();
+        display.getSize(size);
+
         recyclerView = findViewById(R.id.recyclerView);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         myAdapter = new MyAdapter(this);
+
         options = Options.init()
                 .setRequestCode(100)
-                .setCount(3)
-                .setFrontfacing(true)
-                .setImageQuality(ImageQuality.HIGH)
-                .setImageResolution(1024, 800)
-                .setPreSelectedUrls(returnValue1)
-                .setScreenOrientation(Options.SCREEN_ORIENTATION_FULL_SENSOR)
+            .setCount(4)
+            .setFrontfacing(false)
+            .setImageQuality(ImageQuality.LOW)
+            .setScreenOrientation(Options.SCREEN_ORIENTATION_PORTRAIT)
                 .setPath("/akshay/new")
         ;
         recyclerView.setAdapter(myAdapter);
         findViewById(R.id.fab).setOnClickListener((View view) -> {
-            options.setPreSelectedUrls(returnValue1);
+            options.setPreSelectedUrls(returnValue);
             Pix.start(MainActivity.this, options);
         });
 
@@ -58,14 +58,10 @@ public class MainActivity extends AppCompatActivity {
         //Log.e("val", "requestCode ->  " + requestCode+"  resultCode "+resultCode);
         switch (requestCode) {
             case (100): {
+                Log.e("click ", "time 10");
                 if (resultCode == Activity.RESULT_OK) {
                     returnValue = data.getStringArrayListExtra(Pix.IMAGE_RESULTS);
-                    returnValue1.addAll(returnValue);
-                    Log.e("count preSelectedlist", "->     " + returnValue1.size());
-                    myAdapter.addImage(returnValue1);
-                    /*for (String s : returnValue) {
-                        Log.e("val", " ->  " + s);
-                    }*/
+                    myAdapter.addImage(returnValue);
                 }
             }
             break;

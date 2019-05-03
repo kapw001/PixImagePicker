@@ -12,7 +12,16 @@ public class Img implements Serializable {
     private String url;
     private Boolean isSelected;
     private String scrollerDate;
+  private int orientation;
     private int position;
+
+  public int getOrientation() {
+    return orientation;
+  }
+
+  public void setOrientation(int orientation) {
+    this.orientation = orientation;
+  }
 
     public Img(String headerDate, String contentUrl, String url, String scrollerDate) {
         this.headerDate = headerDate;
